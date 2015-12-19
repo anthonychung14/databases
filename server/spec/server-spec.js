@@ -11,12 +11,15 @@ describe("Persistent Node Chat Server", function() {
   beforeEach(function(done) {
     dbConnection = mysql.createConnection({
       user: "root",
-      password: "",
+      password: "hello",
       database: "chat"
     });
-    dbConnection.connect();
+    dbConnection.connect(function(err) {
+      if (err) {console.log("NOOOOOOOO");}
+    });
 
-       var tablename = ""; // TODO: fill this out
+
+       var tablename = "messages"; // TODO: fill this out
 
     /* Empty the db table before each test so that multiple tests
      * (or repeated runs of the tests) won't screw each other up: */
@@ -55,7 +58,7 @@ describe("Persistent Node Chat Server", function() {
           expect(results.length).to.equal(1);
 
           // TODO: If you don't have a column named text, change this test.
-          expect(results[0].text).to.equal("In mercy's name, three days is all I need.");
+          expect(results[0].comment).to.equal("In mercy's name, three days is all I need.");
 
           done();
         });
@@ -65,7 +68,8 @@ describe("Persistent Node Chat Server", function() {
 
   it("Should output all messages from the DB", function(done) {
     // Let's insert a message into the db
-       var queryString = "";
+       var queryString = "SELECT comment, users.name AS user, rooms.name AS roomname FROM" +
+              " (users INNER JOIN messages ON users.id = messages.u_id) INNER JOIN rooms ON messages.r_id = rooms.id;";
        var queryArgs = [];
     // TODO - The exact query string and query args to use
     // here depend on the schema you design, so I'll leave
@@ -78,8 +82,8 @@ describe("Persistent Node Chat Server", function() {
       // the message we just inserted:
       request("http://127.0.0.1:3000/classes/messages", function(error, response, body) {
         var messageLog = JSON.parse(body);
-        expect(messageLog[0].text).to.equal("Men like you can never change!");
-        expect(messageLog[0].roomname).to.equal("main");
+        expect(messageLog[0].comment).to.equal("Men like you can never change!");
+        expect(messageLog[0].roomname).to.equal("main"); // might need to change to 'lobby' or other default
         done();
       });
     });

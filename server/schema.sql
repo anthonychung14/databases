@@ -6,14 +6,14 @@ USE chat;
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   id integer NOT NULL auto_increment, 
-  name VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL UNIQUE,
   PRIMARY KEY (id)
 );
 
 DROP TABLE IF EXISTS rooms;
 CREATE TABLE rooms (
   id integer NOT NULL auto_increment, 
-  name VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL UNIQUE,
   PRIMARY KEY (id)
 );
 

@@ -5,14 +5,15 @@ var mysql = require('mysql');
 
 var dbConnection = mysql.createConnection({
   user: "root",
-  password: "hello",
+  password: "hi",
   database: "chat"
 });
 
 
 // *************************
 
-
+var userNameHash = {};
+var roomNameHash = {};
 
 
 
@@ -31,60 +32,83 @@ module.exports = {
           callback(result);
         });
     }, // a function which produces all the messages
-    post: function (req, callback) {
-      // parse req into json 
-      console.log(req.body)
-      var message = req.body
+    post: function (data, callback) {
+      var userName = data.body.username;
+      var roomName = data.body.roomname;
+      var comment = data.body.comment;
+
       dbConnection.connect(function(err) {
         if (err) {console.log("NOOOOOOOO, in the pooooooost");}
         else {console.log("connection successful")}
       });
 
-      dbConnection.query('INSERT INTO rooms(name) values(?)', [message.roomname], function (err, roomResult) {
-          if (err) {console.log("this thing ain't a working")};
-          
-          // should close connection
-          dbConnection.query('INSERT INTO users(name) values(?)', [message.username], function (err, userResult) {
-            if (err) {console.log("this thing ain't a working")};
-            //console.log('in the user',result.insertId);
+      console.log(data.body);
 
-            dbConnection.query('INSERT into messages (u_id, r_id, comment) Values(?, ?, ?);',
-                               [userResult.insertId, roomResult.insertId, message.comment], 
-                               function (err, result) {
-              if (err) {console.log("this thing ain't a working")};
-              console.log('messages doin shit!',result.insertId);
-            });
+      var queryHash = {
+        getUserID: 'SELECT id from users where name = ?',
+        getRoomID: 'SELECT id from rooms where name = ?',
+        insertUser: 'INSERT INTO users(name) values(?)',
+        insertRoom: 'INSERT INTO rooms(name) values(?)',
+        insertMessage: 'INSERT into messages (u_id, r_id, comment) Values(?, ?, ?);',
+        insertMessageBro: 'INSERT into messages (u_id, r_id, comment) ' +
+          'SELECT users.id, rooms.id, ? FROM users, rooms WHERE rooms.name = ? AND users.name = ?;'
+      };
+      //INSERT into messages (u_id, r_id, comment) SELECT users.id, rooms.id, 'wtf did it work' FROM users, rooms WHERE rooms.name = 'the elephant boneyard' AND users.name = 'Mufasa';
+
+      dbConnection.query(queryHash.insertUser, [userName], function(err, resultingUserID) {
+        if (err) { // assume that tried to insert user that already exists
+          console.log('user already in there!');
+        } 
+
+        dbConnection.query(queryHash.insertRoom, [roomName], function(err, resultingRoomID) {
+          if (err) { // assume that tried to insert user that already exists
+            console.log('room already in there!');
+          } 
+
+          dbConnection.query(queryHash.insertMessageBro, [comment, roomName, userName], function(err, messageObj) {
+            if (err) { // assume that tried to insert user that already exists
+              console.log('Inserting message failed miserably!\n result of insert is: ', messageObj);
+            } 
           });
         });
-          // console.log("rooms are ", result);
-          // var r_id = result.insertId;
-
-          // dbConnection.query('INSERT INTO users SET ?', {name: message.username}, function (err, result) {
-          //   if (err) throw err;
-          //   // should close connection
-          //   console.log("users are ", result);
-          //   var u_id = result.insertId;
-
-          //   var messageInsert = 'INSERT into messages (u_id, r_id, comment) Values(?, ?, ?);';
-
-          //   dbConnection.query(messageInsert, [u_id, r_id, message.comment], function (err, result) {
-          //     if (err) throw err;
-          //     // should close connection
-          //     console.log("message is ", result);
-          //     var m_id = result.insertId;
-          //   });
-          // });
-        // });
-      //json_data -> request to db
-      // return transformed db call to json
-    // } // a function which can be used to insert a message into the database
+      });
   }
 },
 
   users: {
     // Ditto as above.
-    get: function () {},
-    post: function () {}
+    get: function (username, callback) {
+      dbConnection.connect(function(err) {
+        if (err) {console.log("NOOOOOOOO");}
+        else {console.log("connection successful")}
+      });
+
+      var queryString = 'SELECT comment, rooms.name FROM (users INNER JOIN messages ON users.id = messages.u_id) INNER JOIN rooms ON messages.r_id = rooms.id WHERE users.name = ?;';
+      dbConnection.query(queryString, [username], function (err, result) {
+          if (err) throw err;
+          // should close connection
+          callback(result);
+        });
+    },
+    post: function (username, callback) {
+      if (username in userNameHash) {
+        callback("User already in list");
+        
+      } else {
+        
+        dbConnection.connect(function(err) {
+          if (err) {console.log("NOOOOOOOO");}
+          else {console.log("connection successful")}
+        });
+
+        var queryString = 'INSERT INTO users(name) values(?)';
+        dbConnection.query(queryString, [username], function(err, result) {
+          if (err) throw err;
+          userNameHash[username] = result.insertId;
+          callback(result);
+        });
+      }
+    }
   }
 };
 

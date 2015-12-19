@@ -6,7 +6,7 @@ module.exports = {
       
       models.messages.get(req, function(data){
         // TODO: parse and send data to response
-        res.end(JSON.stringify(data))
+        res.end(JSON.stringify(data));
         // console.log("data is: ", data_from_db);
       }); 
 
@@ -14,8 +14,7 @@ module.exports = {
     post: function (req, res) {
       console.log('post request message successful');
       models.messages.post(req, function(data) {
-        console.log(data);
-        res.end(JSON.stringify(data));
+        res.end(data);
       });
     } // a function which handles posting a message to the database
       
